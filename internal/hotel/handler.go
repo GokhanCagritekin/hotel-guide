@@ -2,6 +2,7 @@ package hotel
 
 import (
 	"encoding/json"
+	"hotel-guide/models"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -10,11 +11,11 @@ import (
 
 // Handler handles HTTP requests related to hotels
 type Handler struct {
-	hotelService *Service
+	hotelService *HotelService
 }
 
 // NewHandler creates a new instance of HotelHandler
-func NewHandler(service *Service) *Handler {
+func NewHandler(service *HotelService) *Handler {
 	return &Handler{
 		hotelService: service,
 	}
@@ -32,10 +33,10 @@ func (h *Handler) RegisterRoutes(r *mux.Router) {
 // CreateHotel handles hotel creation
 func (h *Handler) CreateHotel(w http.ResponseWriter, r *http.Request) {
 	var request struct {
-		OwnerName    string        `json:"ownerName"`
-		OwnerSurname string        `json:"ownerSurname"`
-		CompanyTitle string        `json:"companyTitle"`
-		Contacts     []ContactInfo `json:"contacts"`
+		OwnerName    string               `json:"ownerName"`
+		OwnerSurname string               `json:"ownerSurname"`
+		CompanyTitle string               `json:"companyTitle"`
+		Contacts     []models.ContactInfo `json:"contacts"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
@@ -80,7 +81,7 @@ func (h *Handler) AddContactInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var contact ContactInfo
+	var contact models.ContactInfo
 	if err := json.NewDecoder(r.Body).Decode(&contact); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -104,13 +105,13 @@ func (h *Handler) RemoveContactInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var contact ContactInfo
+	var contact models.ContactInfo
 	if err := json.NewDecoder(r.Body).Decode(&contact); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	err = h.hotelService.RemoveContactInfo(hotelID, contact)
+	err = h.hotelService.RemoveContactInfo(hotelID, contact.ID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

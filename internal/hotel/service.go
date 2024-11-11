@@ -2,35 +2,27 @@ package hotel
 
 import (
 	"fmt"
+	"hotel-guide/models"
 
 	"github.com/google/uuid"
 )
 
-// Service provides operations on hotels
-type Service struct {
+// HotelService provides operations on hotels
+type HotelService struct {
 	hotelRepo HotelRepository
 }
 
-// HotelRepository defines the methods required to interact with the data storage
-type HotelRepository interface {
-	CreateHotel(hotel *Hotel) error
-	DeleteHotel(id uuid.UUID) error
-	AddContactInfo(hotelID uuid.UUID, contact ContactInfo) error
-	RemoveContactInfo(hotelID uuid.UUID, contact ContactInfo) error
-	ListHotels() ([]Hotel, error)
-}
-
 // NewService creates a new instance of HotelService
-func NewService(repo HotelRepository) *Service {
-	return &Service{
+func NewService(repo HotelRepository) *HotelService {
+	return &HotelService{
 		hotelRepo: repo,
 	}
 }
 
 // CreateHotel creates a new hotel record
-func (s *Service) CreateHotel(ownerName, ownerSurname, companyTitle string, contacts []ContactInfo) (*Hotel, error) {
-	hotel := NewHotel(ownerName, ownerSurname, companyTitle, contacts)
-	err := s.hotelRepo.CreateHotel(hotel)
+func (s *HotelService) CreateHotel(ownerName, ownerSurname, companyTitle string, contacts []models.ContactInfo) (*models.Hotel, error) {
+	hotel := models.NewHotel(ownerName, ownerSurname, companyTitle, contacts)
+	err := s.hotelRepo.Save(hotel) // Match the method name from repository (Save instead of CreateHotel)
 	if err != nil {
 		return nil, err
 	}
@@ -38,8 +30,8 @@ func (s *Service) CreateHotel(ownerName, ownerSurname, companyTitle string, cont
 }
 
 // DeleteHotel deletes an existing hotel by ID
-func (s *Service) DeleteHotel(id uuid.UUID) error {
-	err := s.hotelRepo.DeleteHotel(id)
+func (s *HotelService) DeleteHotel(id uuid.UUID) error {
+	err := s.hotelRepo.Delete(id) // Match method signature from repository (Delete instead of DeleteHotel)
 	if err != nil {
 		return fmt.Errorf("failed to delete hotel: %w", err)
 	}
@@ -47,8 +39,8 @@ func (s *Service) DeleteHotel(id uuid.UUID) error {
 }
 
 // AddContactInfo adds a new contact info for the specified hotel
-func (s *Service) AddContactInfo(hotelID uuid.UUID, contact ContactInfo) error {
-	err := s.hotelRepo.AddContactInfo(hotelID, contact)
+func (s *HotelService) AddContactInfo(hotelID uuid.UUID, contact models.ContactInfo) error {
+	err := s.hotelRepo.AddContactInfo(hotelID, &contact) // Correct method name from repository
 	if err != nil {
 		return fmt.Errorf("failed to add contact info: %w", err)
 	}
@@ -56,8 +48,8 @@ func (s *Service) AddContactInfo(hotelID uuid.UUID, contact ContactInfo) error {
 }
 
 // RemoveContactInfo removes a contact info from the specified hotel
-func (s *Service) RemoveContactInfo(hotelID uuid.UUID, contact ContactInfo) error {
-	err := s.hotelRepo.RemoveContactInfo(hotelID, contact)
+func (s *HotelService) RemoveContactInfo(hotelID uuid.UUID, contactUUID uuid.UUID) error {
+	err := s.hotelRepo.RemoveContactInfo(hotelID, contactUUID) // Correct method name from repository
 	if err != nil {
 		return fmt.Errorf("failed to remove contact info: %w", err)
 	}
@@ -65,6 +57,6 @@ func (s *Service) RemoveContactInfo(hotelID uuid.UUID, contact ContactInfo) erro
 }
 
 // ListHotels lists all hotels
-func (s *Service) ListHotels() ([]Hotel, error) {
-	return s.hotelRepo.ListHotels()
+func (s *HotelService) ListHotels() ([]models.Hotel, error) {
+	return s.hotelRepo.ListHotels() // Ensure ListHotels exists in your repository
 }

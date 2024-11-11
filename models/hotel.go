@@ -1,12 +1,13 @@
-package hotel
+package models
 
 import (
 	"github.com/google/uuid"
 )
 
 type ContactInfo struct {
-	InfoType    string `json:"info_type"` // Telefon, E-mail, Konum gibi
-	InfoContent string `json:"info_content"`
+	ID          uuid.UUID `json:"id"`        // Unique ID for ContactInfo
+	InfoType    string    `json:"info_type"` // Telefon, E-mail, Konum gibi
+	InfoContent string    `json:"info_content"`
 }
 
 type Hotel struct {
