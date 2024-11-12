@@ -21,15 +21,6 @@ func NewHandler(service *HotelService) *Handler {
 	}
 }
 
-// RegisterRoutes registers the HTTP routes for the hotel operations
-func (h *Handler) RegisterRoutes(r *mux.Router) {
-	r.HandleFunc("/hotels", h.CreateHotel).Methods(http.MethodPost)
-	r.HandleFunc("/hotels/{id}", h.DeleteHotel).Methods(http.MethodDelete)
-	r.HandleFunc("/hotels/{hotelID}/contacts", h.AddContactInfo).Methods(http.MethodPost)
-	r.HandleFunc("/hotels/{hotelID}/contacts", h.RemoveContactInfo).Methods(http.MethodDelete)
-	r.HandleFunc("/hotels", h.ListHotels).Methods(http.MethodGet)
-}
-
 // CreateHotel handles hotel creation
 func (h *Handler) CreateHotel(w http.ResponseWriter, r *http.Request) {
 	var request struct {
@@ -87,17 +78,19 @@ func (h *Handler) AddContactInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.hotelService.AddContactInfo(hotelID, contact)
+	err = h.hotelService.AddContactInfo(hotelID, &contact)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(contact)
 }
 
 // RemoveContactInfo handles removing contact information
 func (h *Handler) RemoveContactInfo(w http.ResponseWriter, r *http.Request) {
+	// Get the hotel ID and contact ID from URL parameters
 	vars := mux.Vars(r)
 	hotelID, err := uuid.Parse(vars["hotelID"])
 	if err != nil {
@@ -105,19 +98,21 @@ func (h *Handler) RemoveContactInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var contact models.ContactInfo
-	if err := json.NewDecoder(r.Body).Decode(&contact); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	contactID, err := uuid.Parse(vars["contactID"])
+	if err != nil {
+		http.Error(w, "Invalid contact ID", http.StatusBadRequest)
 		return
 	}
 
-	err = h.hotelService.RemoveContactInfo(hotelID, contact.ID)
+	// Call service method to delete contact info
+	err = h.hotelService.RemoveContactInfo(hotelID, contactID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	// Return 204 No Content for successful deletion
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // ListHotels handles listing all hotels
@@ -130,4 +125,40 @@ func (h *Handler) ListHotels(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(hotels)
+}
+
+func (h *Handler) ListHotelOfficials(w http.ResponseWriter, r *http.Request) {
+	officials, err := h.hotelService.ListHotelOfficials() // No hotelID input needed anymore
+	if err != nil {
+		http.Error(w, "Error retrieving hotel officials", http.StatusInternalServerError)
+		return
+	}
+
+	// JSON formatında döndürme
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(officials); err != nil {
+		http.Error(w, "Error encoding response", http.StatusInternalServerError)
+	}
+}
+
+func (h *Handler) GetHotelDetails(w http.ResponseWriter, r *http.Request) {
+	hotelID := mux.Vars(r)["hotelID"] // URL'den hotelID al
+	// UUID'yi doğrulamak ve dönüştürmek için
+	hotelUUID, err := uuid.Parse(hotelID)
+	if err != nil {
+		http.Error(w, "Invalid hotel ID", http.StatusBadRequest)
+		return
+	}
+
+	hotelDetails, err := h.hotelService.GetHotelDetails(hotelUUID)
+	if err != nil {
+		http.Error(w, "Error retrieving hotel details", http.StatusInternalServerError)
+		return
+	}
+
+	// JSON formatında döndürme
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(hotelDetails); err != nil {
+		http.Error(w, "Error encoding response", http.StatusInternalServerError)
+	}
 }

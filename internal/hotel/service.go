@@ -39,8 +39,8 @@ func (s *HotelService) DeleteHotel(id uuid.UUID) error {
 }
 
 // AddContactInfo adds a new contact info for the specified hotel
-func (s *HotelService) AddContactInfo(hotelID uuid.UUID, contact models.ContactInfo) error {
-	err := s.hotelRepo.AddContactInfo(hotelID, &contact) // Correct method name from repository
+func (s *HotelService) AddContactInfo(hotelID uuid.UUID, contact *models.ContactInfo) error {
+	err := s.hotelRepo.AddContactInfo(hotelID, contact) // Correct method name from repository
 	if err != nil {
 		return fmt.Errorf("failed to add contact info: %w", err)
 	}
@@ -59,4 +59,21 @@ func (s *HotelService) RemoveContactInfo(hotelID uuid.UUID, contactUUID uuid.UUI
 // ListHotels lists all hotels
 func (s *HotelService) ListHotels() ([]models.Hotel, error) {
 	return s.hotelRepo.ListHotels() // Ensure ListHotels exists in your repository
+}
+
+func (s *HotelService) ListHotelOfficials() ([]models.HotelOfficial, error) {
+	officials, err := s.hotelRepo.GetHotelOfficials()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list hotel officials: %w", err)
+	}
+
+	return officials, nil
+}
+
+func (s *HotelService) GetHotelDetails(hotelID uuid.UUID) (*models.Hotel, error) {
+	hotelDetails, err := s.hotelRepo.GetHotelDetails(hotelID) // Fetch hotel details from repository
+	if err != nil {
+		return nil, fmt.Errorf("failed to get hotel details: %w", err)
+	}
+	return hotelDetails, nil
 }

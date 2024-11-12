@@ -30,10 +30,15 @@ func main() {
 	r := mux.NewRouter()
 
 	// API route'ları
-	r.HandleFunc("/hotel", hotelHandler.CreateHotel).Methods("POST")
-	r.HandleFunc("/hotel/{uuid}", hotelHandler.DeleteHotel).Methods("DELETE")
-	r.HandleFunc("/report", reportHandler.CreateReport).Methods("POST")
-	r.HandleFunc("/report/{uuid}", reportHandler.GetReportByID).Methods("GET")
+	r.HandleFunc("/hotels", hotelHandler.CreateHotel).Methods("POST")
+	r.HandleFunc("/hotels/{id}", hotelHandler.DeleteHotel).Methods("DELETE")
+	r.HandleFunc("/hotels", hotelHandler.ListHotels).Methods("GET")
+	r.HandleFunc("/hotels/{hotelID}/contacts", hotelHandler.AddContactInfo).Methods("POST")
+	r.HandleFunc("/hotels/{hotelID}/contacts/{contactID}", hotelHandler.RemoveContactInfo).Methods("DELETE")
+	r.HandleFunc("/hotels/officials", hotelHandler.ListHotelOfficials).Methods("GET")
+	r.HandleFunc("/hotels/{hotelID}", hotelHandler.GetHotelDetails).Methods("GET")
+	r.HandleFunc("/reports", reportHandler.CreateReport).Methods("POST")
+	r.HandleFunc("/reports/{id}", reportHandler.GetReportByID).Methods("GET")
 
 	// Sunucuyu başlatma
 	log.Fatal(http.ListenAndServe(":8080", r))

@@ -5,9 +5,9 @@ services:
     image: postgres:13
     container_name: hotel-guide-db
     environment:
-      POSTGRES_USER: youruser
-      POSTGRES_PASSWORD: yourpassword
-      POSTGRES_DB: hotel_guide
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mysecretpassword
+      POSTGRES_DB: hotels
     ports:
       - "5432:5432"
     volumes:

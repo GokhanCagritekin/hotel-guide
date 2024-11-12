@@ -8,7 +8,7 @@ import (
 	"hotel-guide/models"
 
 	"github.com/google/uuid"
-	"github.com/jinzhu/gorm"
+	"gorm.io/gorm"
 )
 
 // ReportRepository provides an interface for report operations
