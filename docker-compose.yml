@@ -5,9 +5,9 @@ services:
     image: postgres:13
     container_name: hotel-guide-db
     environment:
-      POSTGRES_USER: myuser
-      POSTGRES_PASSWORD: mysecretpassword
-      POSTGRES_DB: hotels
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
     ports:
       - "5432:5432"
     volumes:
@@ -15,7 +15,6 @@ services:
     networks:
       - hotel-guide-network
 
-  # Eğer uygulamanızı Docker içinde çalıştıracaksanız
   app:
     build: .
     container_name: hotel-guide-app
@@ -25,6 +24,8 @@ services:
       - "8080:8080"
     networks:
       - hotel-guide-network
+    env_file:
+      - .env
 
 volumes:
   postgres_data:

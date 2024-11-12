@@ -1,13 +1,11 @@
 package models
 
-import (
-	"github.com/google/uuid"
-)
+import "github.com/google/uuid"
 
 type ContactInfo struct {
 	ID          uuid.UUID `gorm:"type:uuid;primary_key;default:uuid_generate_v4()" json:"id"`
 	HotelID     uuid.UUID `gorm:"type:uuid;not null;constraint:OnDelete:CASCADE;" json:"hotel_id"`
-	InfoType    string    `json:"info_type"` // Telefon, E-mail, Konum gibi
+	InfoType    string    `json:"info_type"`
 	InfoContent string    `json:"info_content"`
 }
 
@@ -25,7 +23,6 @@ type HotelOfficial struct {
 	CompanyTitle string `json:"company_title"`
 }
 
-// NewHotel creates a new Hotel instance
 func NewHotel(ownerName, ownerSurname, companyTitle string, contacts []ContactInfo) *Hotel {
 	return &Hotel{
 		ID:           uuid.New(),

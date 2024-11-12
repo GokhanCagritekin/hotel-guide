@@ -11,25 +11,25 @@ import (
 )
 
 func main() {
-	// DB bağlantısını başlatma
+	// Initialize DB and close on exit
 	db.InitDB()
 	defer db.CloseDB()
 
-	// Repo ve service'leri oluşturma
+	// Initialize repositories
 	hotelRepo := hotel.NewRepository()
 	reportRepo := report.NewRepository()
 
+	// Initialize services
 	hotelService := hotel.NewService(hotelRepo)
 	reportService := report.NewService(reportRepo)
 
-	// Create the handler instances
+	// Initialize handlers
 	hotelHandler := hotel.NewHandler(hotelService)
 	reportHandler := report.NewHandler(reportService)
 
-	// Router oluşturma
+	// Initialize router and define routes
 	r := mux.NewRouter()
 
-	// API route'ları
 	r.HandleFunc("/hotels", hotelHandler.CreateHotel).Methods("POST")
 	r.HandleFunc("/hotels/{id}", hotelHandler.DeleteHotel).Methods("DELETE")
 	r.HandleFunc("/hotels", hotelHandler.ListHotels).Methods("GET")
@@ -40,6 +40,6 @@ func main() {
 	r.HandleFunc("/reports", reportHandler.CreateReport).Methods("POST")
 	r.HandleFunc("/reports/{id}", reportHandler.GetReportByID).Methods("GET")
 
-	// Sunucuyu başlatma
+	// Start the server
 	log.Fatal(http.ListenAndServe(":8080", r))
 }
