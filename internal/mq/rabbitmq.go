@@ -3,7 +3,9 @@ package mq
 import (
 	"fmt"
 	"log"
+	"os"
 
+	"github.com/joho/godotenv"
 	"github.com/streadway/amqp"
 )
 
@@ -40,10 +42,20 @@ func NewRabbitMQ(url string) (*RabbitMQ, error) {
 	}, nil
 }
 
-// Publish sends a message to the specified queue.
-func (r *RabbitMQ) Publish(queueName string, message []byte) error {
-	// Declare queue or use existing one
-	_, err := r.channel.QueueDeclare(
+// InitializeQueue initializes or ensures the existence of the specified queue.
+func (r *RabbitMQ) InitializeQueue(queueName string) error {
+	_, err := r.declareQueue(queueName)
+	if err != nil {
+		return fmt.Errorf("failed to declare queue: %w", err)
+	}
+
+	log.Printf("Queue %s initialized", queueName)
+	return nil
+}
+
+// declareQueue is a helper function to declare a queue.
+func (r *RabbitMQ) declareQueue(queueName string) (amqp.Queue, error) {
+	return r.channel.QueueDeclare(
 		queueName, // Queue name
 		true,      // Durable
 		false,     // Not deleted when unused
@@ -51,6 +63,11 @@ func (r *RabbitMQ) Publish(queueName string, message []byte) error {
 		false,     // No wait
 		nil,       // Additional arguments
 	)
+}
+
+// Publish sends a message to the specified queue.
+func (r *RabbitMQ) Publish(queueName string, message []byte) error {
+	_, err := r.declareQueue(queueName)
 	if err != nil {
 		return fmt.Errorf("failed to declare queue: %w", err)
 	}
@@ -103,20 +120,25 @@ func (r *RabbitMQ) Close() error {
 	return nil
 }
 
-func (r *RabbitMQ) InitializeQueue(queueName string) error {
-	// Declare queue or use existing one
-	_, err := r.channel.QueueDeclare(
-		queueName, // Queue name
-		true,      // Durable
-		false,     // Not deleted when unused
-		false,     // Not exclusive
-		false,     // No wait
-		nil,       // Additional arguments
-	)
+// NewRabbitMQURL loads RabbitMQ connection details from environment variables and returns the URL
+func NewRabbitMQURL() (string, error) {
+	// Load environment variables from .env file
+	err := godotenv.Load()
 	if err != nil {
-		return fmt.Errorf("failed to declare queue: %w", err)
+		return "", fmt.Errorf("error loading .env file: %v", err)
 	}
 
-	log.Printf("Queue %s initialized", queueName)
-	return nil
+	// Retrieve RabbitMQ connection details from environment variables
+	mqUser := os.Getenv("MQ_USER")
+	mqPassword := os.Getenv("MQ_PASSWORD")
+	mqHost := os.Getenv("MQ_HOST")
+	mqPort := os.Getenv("MQ_PORT")
+
+	if mqUser == "" || mqPassword == "" || mqHost == "" || mqPort == "" {
+		return "", fmt.Errorf("RabbitMQ connection details (MQ_USER, MQ_PASSWORD, MQ_HOST, MQ_PORT) are not set in the environment")
+	}
+
+	// Build RabbitMQ URL
+	rabbitMQURL := "amqp://" + mqUser + ":" + mqPassword + "@" + mqHost + ":" + mqPort + "/"
+	return rabbitMQURL, nil
 }

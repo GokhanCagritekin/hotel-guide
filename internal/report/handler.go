@@ -23,13 +23,14 @@ func NewHandler(service ReportService) *ReportHandler {
 }
 
 // RegisterRoutes registers report-related routes
-func (h *ReportHandler) RegisterRoutes(router *mux.Router) {
-
+func (h *ReportHandler) RegisterRoutes(r *mux.Router) {
+	r.HandleFunc("/reports", h.ListReports).Methods(http.MethodGet)
+	r.HandleFunc("/reports/{id}", h.GetReportByID).Methods(http.MethodGet)
+	r.HandleFunc("/reports", h.RequestReportGeneration).Methods(http.MethodPost)
 }
 
 // RequestReportGeneration handles the creation of a new report
 func (h *ReportHandler) RequestReportGeneration(w http.ResponseWriter, r *http.Request) {
-	// Get location from the request body
 	var req struct {
 		Location string `json:"location"`
 	}
@@ -40,9 +41,16 @@ func (h *ReportHandler) RequestReportGeneration(w http.ResponseWriter, r *http.R
 		return
 	}
 
+	// Validate location
+	if req.Location == "" {
+		http.Error(w, "Location must not be empty", http.StatusBadRequest)
+		return
+	}
+
 	// Call the service to request a new report generation
 	report, err := h.reportService.RequestReportGeneration(req.Location)
 	if err != nil {
+		log.Error().Err(err).Msg("Error creating report")
 		http.Error(w, fmt.Sprintf("Error creating report: %v", err), http.StatusInternalServerError)
 		return
 	}
@@ -59,6 +67,7 @@ func (h *ReportHandler) RequestReportGeneration(w http.ResponseWriter, r *http.R
 func (h *ReportHandler) ListReports(w http.ResponseWriter, r *http.Request) {
 	reports, err := h.reportService.ListReports()
 	if err != nil {
+		log.Error().Err(err).Msg("Error fetching reports")
 		http.Error(w, fmt.Sprintf("Error fetching reports: %v", err), http.StatusInternalServerError)
 		return
 	}
@@ -83,6 +92,7 @@ func (h *ReportHandler) GetReportByID(w http.ResponseWriter, r *http.Request) {
 	// Fetch the report by ID
 	report, err := h.reportService.GetReportByID(id)
 	if err != nil {
+		log.Error().Err(err).Msg("Error fetching report")
 		http.Error(w, fmt.Sprintf("Error fetching report: %v", err), http.StatusInternalServerError)
 		return
 	}

@@ -19,6 +19,17 @@ func NewHandler(service *HotelService) *Handler {
 	}
 }
 
+// RegisterRoutes registers report-related routes
+func (h *Handler) RegisterRoutes(r *mux.Router) {
+	r.HandleFunc("/hotels", h.CreateHotel).Methods("POST")
+	r.HandleFunc("/hotels/{id}", h.DeleteHotel).Methods("DELETE")
+	r.HandleFunc("/hotels", h.ListHotels).Methods("GET")
+	r.HandleFunc("/hotels/{hotelID}/contacts", h.AddContactInfo).Methods("POST")
+	r.HandleFunc("/hotels/{hotelID}/contacts/{contactID}", h.RemoveContactInfo).Methods("DELETE")
+	r.HandleFunc("/hotels/officials", h.ListHotelOfficials).Methods("GET")
+	r.HandleFunc("/hotels/{hotelID}", h.GetHotelDetails).Methods("GET")
+}
+
 func (h *Handler) CreateHotel(w http.ResponseWriter, r *http.Request) {
 	var request struct {
 		OwnerName    string               `json:"ownerName"`

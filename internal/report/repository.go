@@ -11,7 +11,7 @@ import (
 	"gorm.io/gorm"
 )
 
-// ReportRepository arayüzü, rapor veritabanı işlemlerini tanımlar
+// ReportRepository defines report database operations
 type ReportRepository interface {
 	Save(report *models.Report) error
 	ListReports() ([]models.Report, error)
@@ -21,47 +21,49 @@ type ReportRepository interface {
 	UpdateReportStats(reportID uuid.UUID, hotelCount, phoneCount int, status models.ReportStatus) error
 }
 
-// reportRepository struct'ı, ReportRepository arayüzünü uygular
+// reportRepository implements ReportRepository
 type reportRepository struct {
 	db *gorm.DB
 }
 
-// NewReportRepository, yeni bir reportRepository örneği döndürür
+// NewRepository returns a new reportRepository instance
 func NewRepository() ReportRepository {
 	return &reportRepository{db: db.DB}
 }
 
-// Save yeni bir rapor kaydeder
+// Save saves a new report
 func (r *reportRepository) Save(report *models.Report) error {
 	return r.db.Create(report).Error
 }
 
-// ListReports tüm raporları listeler
+// ListReports lists all reports
 func (r *reportRepository) ListReports() ([]models.Report, error) {
 	var reports []models.Report
 	err := r.db.Find(&reports).Error
 	return reports, err
 }
 
-// GetReportByID belirli bir ID'ye sahip raporu getirir
+// GetReportByID fetches a report by its ID
 func (r *reportRepository) GetReportByID(id uuid.UUID) (*models.Report, error) {
 	var report models.Report
 	err := r.db.First(&report, "id = ?", id).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, nil // Rapor bulunamazsa nil döndür
+		return nil, nil
 	}
 	return &report, err
 }
 
-// UpdateReportStatus raporun durumunu günceller
+// UpdateReportStatus updates the status of a report
 func (r *reportRepository) UpdateReportStatus(id uuid.UUID, status models.ReportStatus) error {
 	return r.db.Model(&models.Report{}).Where("id = ?", id).Update("status", status).Error
 }
 
+// GetHotelStatsByLocation fetches hotel stats by location
 func (r *reportRepository) GetHotelStatsByLocation(location string, hotels *[]models.Hotel) error {
-	// ContactInfo'dan location bilgilerini sorguluyoruz
 	err := r.db.Joins("JOIN contact_infos ON contact_infos.hotel_id = hotels.id").
-		Where("contact_infos.info_type = ? AND contact_infos.info_content = ?", "location", location).
+		Where("contact_infos.info_type IN (?)", []string{"location", "phone"}).
+		Where("contact_infos.info_content = ?", location).
+		Preload("ContactInfos"). // Preload the ContactInfos relation
 		Find(hotels).Error
 
 	if err != nil {
@@ -71,6 +73,7 @@ func (r *reportRepository) GetHotelStatsByLocation(location string, hotels *[]mo
 	return nil
 }
 
+// UpdateReportStats updates the hotel count, phone count, and status of a report
 func (r *reportRepository) UpdateReportStats(reportID uuid.UUID, hotelCount, phoneCount int, status models.ReportStatus) error {
 	return r.db.Model(&models.Report{}).
 		Where("id = ?", reportID).

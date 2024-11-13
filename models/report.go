@@ -22,7 +22,6 @@ type Report struct {
 	Status      ReportStatus `json:"status"`
 }
 
-// NewReport creates a new Report instance
 func NewReport(location string, hotelCount, phoneCount int) *Report {
 	return &Report{
 		ID:          uuid.New(),

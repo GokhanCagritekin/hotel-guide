@@ -12,7 +12,7 @@ import (
 )
 
 func main() {
-	// Initialize DB and close on exit
+	// Initialize the database and ensure it closes on exit
 	db.InitDB()
 	defer db.CloseDB()
 
@@ -20,42 +20,35 @@ func main() {
 	hotelRepo := hotel.NewRepository()
 	reportRepo := report.NewRepository()
 
-	// Initialize RabbitMQ
-	rabbitMQ, err := mq.NewRabbitMQ("amqp://guest:guest@localhost:5672/")
+	// Retrieve RabbitMQ connection URL from the mq package
+	rabbitMQURL, err := mq.NewRabbitMQURL()
+	if err != nil {
+		log.Fatalf("Failed to get RabbitMQ URL: %v", err)
+	}
+
+	// Initialize RabbitMQ connection and queue setup
+	rabbitMQ, err := mq.NewRabbitMQ(rabbitMQURL)
 	if err != nil {
 		log.Fatalf("Failed to connect to RabbitMQ: %v", err)
 	}
-	defer rabbitMQ.Close() // Close RabbitMQ connection when done
-
-	err = rabbitMQ.InitializeQueue("reportQueue")
-	if err != nil {
-		log.Fatal(err)
-	}
+	defer rabbitMQ.Close()
 
 	// Initialize services
 	hotelService := hotel.NewService(hotelRepo)
-	reportService := report.NewService(reportRepo, rabbitMQ) // Pass RabbitMQ to the service
+	reportService := report.NewService(reportRepo, rabbitMQ)
 
+	// Start the report consumer for processing asynchronous tasks
 	reportService.StartReportConsumer()
 
 	// Initialize handlers
 	hotelHandler := hotel.NewHandler(hotelService)
 	reportHandler := report.NewHandler(reportService)
 
-	// Initialize router and define routes
+	// Set up router and define routes
 	r := mux.NewRouter()
+	hotelHandler.RegisterRoutes(r)
+	reportHandler.RegisterRoutes(r)
 
-	r.HandleFunc("/hotels", hotelHandler.CreateHotel).Methods("POST")
-	r.HandleFunc("/hotels/{id}", hotelHandler.DeleteHotel).Methods("DELETE")
-	r.HandleFunc("/hotels", hotelHandler.ListHotels).Methods("GET")
-	r.HandleFunc("/hotels/{hotelID}/contacts", hotelHandler.AddContactInfo).Methods("POST")
-	r.HandleFunc("/hotels/{hotelID}/contacts/{contactID}", hotelHandler.RemoveContactInfo).Methods("DELETE")
-	r.HandleFunc("/hotels/officials", hotelHandler.ListHotelOfficials).Methods("GET")
-	r.HandleFunc("/hotels/{hotelID}", hotelHandler.GetHotelDetails).Methods("GET")
-	r.HandleFunc("/reports", reportHandler.RequestReportGeneration).Methods("POST")
-	r.HandleFunc("/reports", reportHandler.ListReports).Methods("GET")
-	r.HandleFunc("/reports/{id}", reportHandler.GetReportByID).Methods("GET")
-
-	// Start the server
+	// Start the HTTP server
 	log.Fatal(http.ListenAndServe(":8080", r))
 }

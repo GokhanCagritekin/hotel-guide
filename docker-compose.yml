@@ -19,8 +19,8 @@ services:
     image: rabbitmq:management
     container_name: hotel-guide-rabbitmq
     environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
+      RABBITMQ_DEFAULT_USER: ${MQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${MQ_PASSWORD}
     ports:
       - "5672:5672"  # RabbitMQ default AMQP port
       - "15672:15672"  # RabbitMQ management plugin UI port

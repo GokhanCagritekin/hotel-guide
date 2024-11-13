@@ -17,7 +17,6 @@ type ReportService interface {
 	GetReportByID(id uuid.UUID) (*models.Report, error)
 	RequestReportGeneration(location string) (*models.Report, error)
 	UpdateReportStatus(id uuid.UUID, status models.ReportStatus) error
-	getHotelStats(location string) (int, int, error)
 	StartReportConsumer()
 	fetchLocationStats(location string) (int, int, error)
 }
@@ -56,6 +55,7 @@ func (s *reportService) GetReportByID(id uuid.UUID) (*models.Report, error) {
 	return s.reportRepo.GetReportByID(id)
 }
 
+// RequestReportGeneration handles the creation of a new report and sends it to the RabbitMQ queue
 func (s *reportService) RequestReportGeneration(location string) (*models.Report, error) {
 	// Create a new report with "Pending" status
 	report := models.NewReport(location, 0, 0) // Initial counts set to 0
@@ -88,29 +88,12 @@ func (s *reportService) RequestReportGeneration(location string) (*models.Report
 	return report, nil
 }
 
-// getHotelStats calculates hotel and phone counts for a specific location
-func (s *reportService) getHotelStats(location string) (int, int, error) {
-	// Query hotels and phone numbers from the database (assuming a query method exists)
-	var hotels []models.Hotel
-	err := s.reportRepo.GetHotelStatsByLocation(location, &hotels)
-	if err != nil {
-		return 0, 0, err
-	}
-
-	hotelCount := len(hotels)
-	phoneCount := 0
-	for _, hotel := range hotels {
-		phoneCount += len(hotel.ContactInfos) // Assuming ContactInfo holds phone numbers
-	}
-
-	return hotelCount, phoneCount, nil
-}
-
 // UpdateReportStatus updates the status of an existing report
 func (s *reportService) UpdateReportStatus(id uuid.UUID, status models.ReportStatus) error {
 	return s.reportRepo.UpdateReportStatus(id, status)
 }
 
+// StartReportConsumer consumes messages from RabbitMQ and processes reports
 func (s *reportService) StartReportConsumer() {
 	messages, err := s.rabbitMQ.Consume("reportQueue")
 	if err != nil {
@@ -132,7 +115,7 @@ func (s *reportService) StartReportConsumer() {
 			// Fetch hotel and phone counts for the specified location
 			hotelCount, phoneCount, err := s.fetchLocationStats(request.Location)
 			if err != nil {
-				log.Printf("Failed to fetch location stats: %v", err)
+				log.Printf("Failed to fetch location stats for %s: %v", request.Location, err)
 				continue
 			}
 
@@ -162,7 +145,12 @@ func (s *reportService) fetchLocationStats(location string) (int, int, error) {
 	hotelCount := len(hotels)
 	phoneCount := 0
 	for _, hotel := range hotels {
-		phoneCount += len(hotel.ContactInfos) // Assuming ContactInfos holds phone numbers and other contact data
+		// Count only the contact infos where infotype is "phone"
+		for _, contact := range hotel.ContactInfos {
+			if contact.InfoType == "phone" {
+				phoneCount++
+			}
+		}
 	}
 
 	return hotelCount, phoneCount, nil
