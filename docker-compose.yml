@@ -15,11 +15,24 @@ services:
     networks:
       - hotel-guide-network
 
+  rabbitmq:
+    image: rabbitmq:management
+    container_name: hotel-guide-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"  # RabbitMQ default AMQP port
+      - "15672:15672"  # RabbitMQ management plugin UI port
+    networks:
+      - hotel-guide-network
+
   app:
     build: .
     container_name: hotel-guide-app
     depends_on:
       - db
+      - rabbitmq
     ports:
       - "8080:8080"
     networks:

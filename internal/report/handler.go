@@ -2,81 +2,98 @@ package report
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
+	"github.com/rs/zerolog/log"
 )
 
-// Handler handles HTTP requests related to reports
-type Handler struct {
-	reportService *Service
+// ReportHandler struct to handle HTTP requests
+type ReportHandler struct {
+	reportService ReportService
 }
 
-// NewHandler creates a new instance of ReportHandler
-func NewHandler(service *Service) *Handler {
-	return &Handler{
+// NewReportHandler creates a new ReportHandler
+func NewHandler(service ReportService) *ReportHandler {
+	return &ReportHandler{
 		reportService: service,
 	}
 }
 
-// RegisterRoutes registers the HTTP routes for the report operations
-func (h *Handler) RegisterRoutes(r *mux.Router) {
-	r.HandleFunc("/reports", h.CreateReport).Methods(http.MethodPost)
-	r.HandleFunc("/reports/{id}", h.GetReportByID).Methods(http.MethodGet)
-	r.HandleFunc("/reports", h.ListReports).Methods(http.MethodGet)
+// RegisterRoutes registers report-related routes
+func (h *ReportHandler) RegisterRoutes(router *mux.Router) {
+
 }
 
-// CreateReport handles report creation
-func (h *Handler) CreateReport(w http.ResponseWriter, r *http.Request) {
-	var request struct {
-		Location   string `json:"location"`
-		HotelCount int    `json:"hotelCount"`
-		PhoneCount int    `json:"phoneCount"`
+// RequestReportGeneration handles the creation of a new report
+func (h *ReportHandler) RequestReportGeneration(w http.ResponseWriter, r *http.Request) {
+	// Get location from the request body
+	var req struct {
+		Location string `json:"location"`
 	}
 
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	// Parse the request body
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, fmt.Sprintf("Invalid request body: %v", err), http.StatusBadRequest)
 		return
 	}
 
-	report, err := h.reportService.CreateReport(request.Location, request.HotelCount, request.PhoneCount)
+	// Call the service to request a new report generation
+	report, err := h.reportService.RequestReportGeneration(req.Location)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Error creating report: %v", err), http.StatusInternalServerError)
 		return
 	}
 
+	// Return the created report
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(report)
+	if err := json.NewEncoder(w).Encode(report); err != nil {
+		log.Error().Err(err).Msg("Error encoding response")
+	}
 }
 
-// ListReports handles listing all reports
-func (h *Handler) ListReports(w http.ResponseWriter, r *http.Request) {
+// ListReports handles fetching all reports
+func (h *ReportHandler) ListReports(w http.ResponseWriter, r *http.Request) {
 	reports, err := h.reportService.ListReports()
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Error fetching reports: %v", err), http.StatusInternalServerError)
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(reports)
+	// Return the list of reports
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(reports); err != nil {
+		log.Error().Err(err).Msg("Error encoding response")
+	}
 }
 
-// GetReportByID handles getting a report by its ID
-func (h *Handler) GetReportByID(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	reportID, err := uuid.Parse(vars["id"])
+// GetReportByID handles fetching a specific report by ID
+func (h *ReportHandler) GetReportByID(w http.ResponseWriter, r *http.Request) {
+	// Get report ID from URL params
+	params := mux.Vars(r)
+	id, err := uuid.Parse(params["id"])
 	if err != nil {
-		http.Error(w, "Invalid report ID", http.StatusBadRequest)
+		http.Error(w, "Invalid report ID format", http.StatusBadRequest)
 		return
 	}
 
-	report, err := h.reportService.GetReportByID(reportID)
+	// Fetch the report by ID
+	report, err := h.reportService.GetReportByID(id)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Error fetching report: %v", err), http.StatusInternalServerError)
+		return
+	}
+	if report == nil {
+		http.Error(w, "Report not found", http.StatusNotFound)
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(report)
+	// Return the report
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(report); err != nil {
+		log.Error().Err(err).Msg("Error encoding response")
+	}
 }

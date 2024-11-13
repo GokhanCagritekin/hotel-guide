@@ -2,7 +2,7 @@ package report
 
 import (
 	"errors"
-	"time"
+	"fmt"
 
 	"hotel-guide/internal/db"
 	"hotel-guide/models"
@@ -11,61 +11,72 @@ import (
 	"gorm.io/gorm"
 )
 
-// ReportRepository provides an interface for report operations
+// ReportRepository arayüzü, rapor veritabanı işlemlerini tanımlar
 type ReportRepository interface {
-	CreateReport(report *models.Report) error
-	GetReportByID(id uuid.UUID) (*models.Report, error)
+	Save(report *models.Report) error
 	ListReports() ([]models.Report, error)
+	GetReportByID(id uuid.UUID) (*models.Report, error)
 	UpdateReportStatus(id uuid.UUID, status models.ReportStatus) error
+	GetHotelStatsByLocation(location string, hotels *[]models.Hotel) error
+	UpdateReportStats(reportID uuid.UUID, hotelCount, phoneCount int, status models.ReportStatus) error
 }
 
-// reportRepository is the implementation of the ReportRepository interface
+// reportRepository struct'ı, ReportRepository arayüzünü uygular
 type reportRepository struct {
 	db *gorm.DB
 }
 
-// NewRepository creates a new reportRepository instance
+// NewReportRepository, yeni bir reportRepository örneği döndürür
 func NewRepository() ReportRepository {
-	return &reportRepository{
-		db: db.DB,
-	}
+	return &reportRepository{db: db.DB}
 }
 
-// CreateReport creates a new report record
-func (r *reportRepository) CreateReport(report *models.Report) error {
-	report.ID = generateUUID() // Generates a new UUID for the report
-	report.RequestedAt = time.Now()
-	report.Status = "Preparing"
+// Save yeni bir rapor kaydeder
+func (r *reportRepository) Save(report *models.Report) error {
 	return r.db.Create(report).Error
 }
 
-// GetReportByID fetches a report by its UUID
-func (r *reportRepository) GetReportByID(id uuid.UUID) (*models.Report, error) {
-	var report models.Report
-	if err := r.db.First(&report, "id = ?", id).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil // Return nil if the record is not found
-		}
-		return nil, err
-	}
-	return &report, nil
-}
-
-// ListReports fetches all reports
+// ListReports tüm raporları listeler
 func (r *reportRepository) ListReports() ([]models.Report, error) {
 	var reports []models.Report
-	if err := r.db.Find(&reports).Error; err != nil {
-		return nil, err
-	}
-	return reports, nil
+	err := r.db.Find(&reports).Error
+	return reports, err
 }
 
-// UpdateReportStatus updates the status of a report by its UUID
+// GetReportByID belirli bir ID'ye sahip raporu getirir
+func (r *reportRepository) GetReportByID(id uuid.UUID) (*models.Report, error) {
+	var report models.Report
+	err := r.db.First(&report, "id = ?", id).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil // Rapor bulunamazsa nil döndür
+	}
+	return &report, err
+}
+
+// UpdateReportStatus raporun durumunu günceller
 func (r *reportRepository) UpdateReportStatus(id uuid.UUID, status models.ReportStatus) error {
 	return r.db.Model(&models.Report{}).Where("id = ?", id).Update("status", status).Error
 }
 
-// generateUUID generates a new UUID
-func generateUUID() uuid.UUID {
-	return uuid.New()
+func (r *reportRepository) GetHotelStatsByLocation(location string, hotels *[]models.Hotel) error {
+	// ContactInfo'dan location bilgilerini sorguluyoruz
+	err := r.db.Joins("JOIN contact_infos ON contact_infos.hotel_id = hotels.id").
+		Where("contact_infos.info_type = ? AND contact_infos.info_content = ?", "location", location).
+		Find(hotels).Error
+
+	if err != nil {
+		return fmt.Errorf("failed to get hotels by location: %w", err)
+	}
+
+	return nil
+}
+
+func (r *reportRepository) UpdateReportStats(reportID uuid.UUID, hotelCount, phoneCount int, status models.ReportStatus) error {
+	return r.db.Model(&models.Report{}).
+		Where("id = ?", reportID).
+		Updates(map[string]interface{}{
+			"hotel_count": hotelCount,
+			"phone_count": phoneCount,
+			"status":      status,
+		}).Error
 }

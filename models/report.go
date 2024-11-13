@@ -9,12 +9,12 @@ import (
 type ReportStatus string
 
 const (
-	Pending   ReportStatus = "Hazırlanıyor"
-	Completed ReportStatus = "Tamamlandı"
+	Pending   ReportStatus = "In Progress"
+	Completed ReportStatus = "Completed"
 )
 
 type Report struct {
-	ID          uuid.UUID    `json:"id"`
+	ID          uuid.UUID    `gorm:"type:uuid;primary_key;default:uuid_generate_v4()" json:"id"`
 	Location    string       `json:"location"`
 	HotelCount  int          `json:"hotel_count"`
 	PhoneCount  int          `json:"phone_count"`
