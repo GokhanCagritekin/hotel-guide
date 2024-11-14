@@ -12,7 +12,7 @@ RUN go mod download
 COPY . .
 
 # Uygulamayı build et (binary dosyasını oluştur)
-RUN go build -o hotelguide ./cmd/hotelguide
+RUN go build -o hotelservice ./cmd/hotel-service/main.go
 
 # Final stage
 FROM alpine:latest
@@ -21,7 +21,7 @@ FROM alpine:latest
 WORKDIR /root/
 
 # Build aşamasında oluşturulan binary dosyasını kopyala
-COPY --from=builder /app/hotelguide .
+COPY --from=builder /app/hotelservice .
 
 # Uygulamayı çalıştır
-CMD ["./hotelguide"]
+CMD ["./hotelservice"]

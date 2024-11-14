@@ -17,6 +17,7 @@ type HotelRepository interface {
 	ListHotels() ([]models.Hotel, error)
 	GetHotelOfficials() ([]models.HotelOfficial, error)
 	GetHotelDetails(hotelID uuid.UUID) (*models.Hotel, error)
+	FetchHotelsByLocation(location string) ([]models.Hotel, error)
 }
 
 type hotelRepository struct {
@@ -75,4 +76,19 @@ func (r *hotelRepository) GetHotelDetails(hotelID uuid.UUID) (*models.Hotel, err
 		return nil, fmt.Errorf("error fetching hotel details: %w", err)
 	}
 	return &hotel, nil
+}
+
+func (r *hotelRepository) FetchHotelsByLocation(location string) ([]models.Hotel, error) {
+	var hotels []models.Hotel
+
+	err := r.db.Joins("JOIN contact_infos ON contact_infos.hotel_id = hotels.id").
+		Where("contact_infos.info_type IN (?)", []string{"location", "phone"}).
+		Where("contact_infos.info_content = ?", location).
+		Preload("ContactInfos").
+		Find(&hotels).Error
+
+	if err != nil {
+		return nil, fmt.Errorf("error fetching hotels by location %s: %w", location, err)
+	}
+	return hotels, nil
 }

@@ -2,7 +2,6 @@ package main
 
 import (
 	"hotel-guide/internal/db"
-	"hotel-guide/internal/hotel"
 	"hotel-guide/internal/mq"
 	"hotel-guide/internal/report"
 	"log"
@@ -16,8 +15,7 @@ func main() {
 	db.InitDB()
 	defer db.CloseDB()
 
-	// Initialize repositories
-	hotelRepo := hotel.NewRepository()
+	// Initialize report repository
 	reportRepo := report.NewRepository()
 
 	// Retrieve RabbitMQ connection URL from the mq package
@@ -33,22 +31,25 @@ func main() {
 	}
 	defer rabbitMQ.Close()
 
-	// Initialize services
-	hotelService := hotel.NewService(hotelRepo)
+	err = rabbitMQ.InitializeQueue("reportQueue")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Initialize report service with RabbitMQ dependency
 	reportService := report.NewService(reportRepo, rabbitMQ)
 
 	// Start the report consumer for processing asynchronous tasks
 	reportService.StartReportConsumer()
 
-	// Initialize handlers
-	hotelHandler := hotel.NewHandler(hotelService)
+	// Initialize report handler
 	reportHandler := report.NewHandler(reportService)
 
-	// Set up router and define routes
+	// Set up router and define report-specific routes
 	r := mux.NewRouter()
-	hotelHandler.RegisterRoutes(r)
 	reportHandler.RegisterRoutes(r)
 
 	// Start the HTTP server
-	log.Fatal(http.ListenAndServe(":8080", r))
+	log.Println("Report service is running on port 8082")
+	log.Fatal(http.ListenAndServe(":8082", r))
 }

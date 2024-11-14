@@ -2,6 +2,7 @@ package hotel
 
 import (
 	"encoding/json"
+	"fmt"
 	"hotel-guide/models"
 	"net/http"
 
@@ -21,6 +22,7 @@ func NewHandler(service *HotelService) *Handler {
 
 // RegisterRoutes registers report-related routes
 func (h *Handler) RegisterRoutes(r *mux.Router) {
+	r.HandleFunc("/hotels/stats", h.GetHotelStats).Methods("GET")
 	r.HandleFunc("/hotels", h.CreateHotel).Methods("POST")
 	r.HandleFunc("/hotels/{id}", h.DeleteHotel).Methods("DELETE")
 	r.HandleFunc("/hotels", h.ListHotels).Methods("GET")
@@ -156,5 +158,32 @@ func (h *Handler) GetHotelDetails(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(hotelDetails); err != nil {
 		http.Error(w, "Error encoding response", http.StatusInternalServerError)
+	}
+}
+
+func (h *Handler) GetHotelStats(w http.ResponseWriter, r *http.Request) {
+	location := r.URL.Query().Get("location")
+	if location == "" {
+		http.Error(w, "location parameter is required", http.StatusBadRequest)
+		return
+	}
+
+	hotelCount, phoneCount, err := h.hotelService.FetchLocationStats(location)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("error fetching stats: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	response := struct {
+		HotelCount int `json:"hotel_count"`
+		PhoneCount int `json:"phone_count"`
+	}{
+		HotelCount: hotelCount,
+		PhoneCount: phoneCount,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, "failed to encode response", http.StatusInternalServerError)
 	}
 }

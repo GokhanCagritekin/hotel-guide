@@ -27,14 +27,30 @@ services:
     networks:
       - hotel-guide-network
 
-  app:
-    build: .
-    container_name: hotel-guide-app
+  hotel-service:
+    build:
+      context: . 
+      dockerfile: cmd/hotel-service/Dockerfile
+    container_name: hotel-service
+    depends_on:
+      - db
+    ports:
+      - "8081:8080"
+    networks:
+      - hotel-guide-network
+    env_file:
+      - .env
+
+  report-service:
+    build:
+      context: .
+      dockerfile: cmd/report-service/Dockerfile
+    container_name: report-service
     depends_on:
       - db
       - rabbitmq
     ports:
-      - "8080:8080"
+      - "8082:8080"
     networks:
       - hotel-guide-network
     env_file:

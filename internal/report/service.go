@@ -133,25 +133,9 @@ func (s *reportService) StartReportConsumer() {
 
 // fetchLocationStats fetches hotel and phone counts for a given location.
 func (s *reportService) fetchLocationStats(location string) (int, int, error) {
-	var hotels []models.Hotel
-
-	// Get hotels by location using the repository function
-	err := s.reportRepo.GetHotelStatsByLocation(location, &hotels)
+	hotelCount, phoneCount, err := s.reportRepo.FetchHotelAndPhoneCounts(location)
 	if err != nil {
-		return 0, 0, fmt.Errorf("failed to fetch hotels for location %s: %w", location, err)
+		return 0, 0, fmt.Errorf("failed to fetch hotel and phone counts for location %s: %w", location, err)
 	}
-
-	// Calculate hotel count and phone count
-	hotelCount := len(hotels)
-	phoneCount := 0
-	for _, hotel := range hotels {
-		// Count only the contact infos where infotype is "phone"
-		for _, contact := range hotel.ContactInfos {
-			if contact.InfoType == "phone" {
-				phoneCount++
-			}
-		}
-	}
-
 	return hotelCount, phoneCount, nil
 }

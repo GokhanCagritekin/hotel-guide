@@ -1,8 +1,13 @@
 package report
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
+	"net/http"
+	"net/url"
+	"os"
 
 	"hotel-guide/internal/db"
 	"hotel-guide/models"
@@ -17,8 +22,8 @@ type ReportRepository interface {
 	ListReports() ([]models.Report, error)
 	GetReportByID(id uuid.UUID) (*models.Report, error)
 	UpdateReportStatus(id uuid.UUID, status models.ReportStatus) error
-	GetHotelStatsByLocation(location string, hotels *[]models.Hotel) error
 	UpdateReportStats(reportID uuid.UUID, hotelCount, phoneCount int, status models.ReportStatus) error
+	FetchHotelAndPhoneCounts(location string) (int, int, error)
 }
 
 // reportRepository implements ReportRepository
@@ -58,21 +63,6 @@ func (r *reportRepository) UpdateReportStatus(id uuid.UUID, status models.Report
 	return r.db.Model(&models.Report{}).Where("id = ?", id).Update("status", status).Error
 }
 
-// GetHotelStatsByLocation fetches hotel stats by location
-func (r *reportRepository) GetHotelStatsByLocation(location string, hotels *[]models.Hotel) error {
-	err := r.db.Joins("JOIN contact_infos ON contact_infos.hotel_id = hotels.id").
-		Where("contact_infos.info_type IN (?)", []string{"location", "phone"}).
-		Where("contact_infos.info_content = ?", location).
-		Preload("ContactInfos"). // Preload the ContactInfos relation
-		Find(hotels).Error
-
-	if err != nil {
-		return fmt.Errorf("failed to get hotels by location: %w", err)
-	}
-
-	return nil
-}
-
 // UpdateReportStats updates the hotel count, phone count, and status of a report
 func (r *reportRepository) UpdateReportStats(reportID uuid.UUID, hotelCount, phoneCount int, status models.ReportStatus) error {
 	return r.db.Model(&models.Report{}).
@@ -82,4 +72,27 @@ func (r *reportRepository) UpdateReportStats(reportID uuid.UUID, hotelCount, pho
 			"phone_count": phoneCount,
 			"status":      status,
 		}).Error
+}
+
+// FetchHotelAndPhoneCounts fetches hotel and phone counts by location from hotel-service
+func (r *reportRepository) FetchHotelAndPhoneCounts(location string) (int, int, error) {
+	var hotelServiceURL = os.Getenv("HOTEL_SERVICE_URL")
+	location = url.QueryEscape(location)
+	url := fmt.Sprintf("%s/hotels/stats?location=%s", hotelServiceURL, location)
+	resp, err := http.Get(url)
+	if err != nil {
+		return 0, 0, fmt.Errorf("failed to fetch hotel and phone counts from hotel-service: %w", err)
+	}
+	defer resp.Body.Close()
+
+	var result struct {
+		HotelCount int `json:"hotel_count"`
+		PhoneCount int `json:"phone_count"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		log.Printf("Failed to decode JSON response: %v", err)
+		return 0, 0, fmt.Errorf("failed to decode hotel and phone counts response: %w", err)
+	}
+	return result.HotelCount, result.PhoneCount, nil
 }

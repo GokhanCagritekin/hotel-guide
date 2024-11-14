@@ -65,3 +65,22 @@ func (s *HotelService) GetHotelDetails(hotelID uuid.UUID) (*models.Hotel, error)
 	}
 	return hotelDetails, nil
 }
+
+func (s *HotelService) FetchLocationStats(location string) (int, int, error) {
+	hotels, err := s.hotelRepo.FetchHotelsByLocation(location)
+	if err != nil {
+		return 0, 0, fmt.Errorf("failed to fetch hotels for location %s: %w", location, err)
+	}
+
+	hotelCount := len(hotels)
+	phoneCount := 0
+	for _, hotel := range hotels {
+		for _, contact := range hotel.ContactInfos {
+			if contact.InfoType == "phone" {
+				phoneCount++
+			}
+		}
+	}
+
+	return hotelCount, phoneCount, nil
+}
