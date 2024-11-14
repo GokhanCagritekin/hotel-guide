@@ -15,6 +15,10 @@ func main() {
 	db.InitDB()
 	defer db.CloseDB()
 
+	if err := db.DB.AutoMigrate(&report.Report{}); err != nil {
+		log.Fatalf("Error running migrations: %v", err)
+	}
+
 	// Initialize report repository
 	reportRepo := report.NewRepository()
 

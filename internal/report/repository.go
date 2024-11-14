@@ -10,7 +10,6 @@ import (
 	"os"
 
 	"hotel-guide/internal/db"
-	"hotel-guide/models"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -18,11 +17,11 @@ import (
 
 // ReportRepository defines report database operations
 type ReportRepository interface {
-	Save(report *models.Report) error
-	ListReports() ([]models.Report, error)
-	GetReportByID(id uuid.UUID) (*models.Report, error)
-	UpdateReportStatus(id uuid.UUID, status models.ReportStatus) error
-	UpdateReportStats(reportID uuid.UUID, hotelCount, phoneCount int, status models.ReportStatus) error
+	Save(report *Report) error
+	ListReports() ([]Report, error)
+	GetReportByID(id uuid.UUID) (*Report, error)
+	UpdateReportStatus(id uuid.UUID, status ReportStatus) error
+	UpdateReportStats(reportID uuid.UUID, hotelCount, phoneCount int, status ReportStatus) error
 	FetchHotelAndPhoneCounts(location string) (int, int, error)
 }
 
@@ -37,20 +36,20 @@ func NewRepository() ReportRepository {
 }
 
 // Save saves a new report
-func (r *reportRepository) Save(report *models.Report) error {
+func (r *reportRepository) Save(report *Report) error {
 	return r.db.Create(report).Error
 }
 
 // ListReports lists all reports
-func (r *reportRepository) ListReports() ([]models.Report, error) {
-	var reports []models.Report
+func (r *reportRepository) ListReports() ([]Report, error) {
+	var reports []Report
 	err := r.db.Find(&reports).Error
 	return reports, err
 }
 
 // GetReportByID fetches a report by its ID
-func (r *reportRepository) GetReportByID(id uuid.UUID) (*models.Report, error) {
-	var report models.Report
+func (r *reportRepository) GetReportByID(id uuid.UUID) (*Report, error) {
+	var report Report
 	err := r.db.First(&report, "id = ?", id).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, nil
@@ -59,13 +58,13 @@ func (r *reportRepository) GetReportByID(id uuid.UUID) (*models.Report, error) {
 }
 
 // UpdateReportStatus updates the status of a report
-func (r *reportRepository) UpdateReportStatus(id uuid.UUID, status models.ReportStatus) error {
-	return r.db.Model(&models.Report{}).Where("id = ?", id).Update("status", status).Error
+func (r *reportRepository) UpdateReportStatus(id uuid.UUID, status ReportStatus) error {
+	return r.db.Model(&Report{}).Where("id = ?", id).Update("status", status).Error
 }
 
 // UpdateReportStats updates the hotel count, phone count, and status of a report
-func (r *reportRepository) UpdateReportStats(reportID uuid.UUID, hotelCount, phoneCount int, status models.ReportStatus) error {
-	return r.db.Model(&models.Report{}).
+func (r *reportRepository) UpdateReportStats(reportID uuid.UUID, hotelCount, phoneCount int, status ReportStatus) error {
+	return r.db.Model(&Report{}).
 		Where("id = ?", reportID).
 		Updates(map[string]interface{}{
 			"hotel_count": hotelCount,

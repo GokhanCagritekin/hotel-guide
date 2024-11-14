@@ -14,6 +14,10 @@ func main() {
 	db.InitDB()
 	defer db.CloseDB()
 
+	if err := db.DB.AutoMigrate(&hotel.Hotel{}, &hotel.ContactInfo{}); err != nil {
+		log.Fatalf("Error running migrations: %v", err)
+	}
+
 	// Initialize hotel repository
 	hotelRepo := hotel.NewRepository()
 

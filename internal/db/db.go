@@ -1,7 +1,6 @@
 package db
 
 import (
-	"hotel-guide/models"
 	"log"
 	"os"
 
@@ -41,10 +40,6 @@ func InitDB() {
 	}
 
 	sqlDB.Exec("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";")
-
-	if err := DB.AutoMigrate(&models.Hotel{}, &models.Report{}, &models.ContactInfo{}); err != nil {
-		log.Fatalf("Error running migrations: %v", err)
-	}
 
 	if err := applyCascadeDeleteConstraint(DB); err != nil {
 		log.Fatalf("Error applying cascade delete constraint: %v", err)
