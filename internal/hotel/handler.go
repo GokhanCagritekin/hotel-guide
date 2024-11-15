@@ -3,7 +3,6 @@ package hotel
 import (
 	"encoding/json"
 	"fmt"
-	"hotel-guide/models"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -11,10 +10,10 @@ import (
 )
 
 type Handler struct {
-	hotelService *HotelService
+	hotelService HotelService
 }
 
-func NewHandler(service *HotelService) *Handler {
+func NewHandler(service HotelService) *Handler {
 	return &Handler{
 		hotelService: service,
 	}
@@ -34,10 +33,10 @@ func (h *Handler) RegisterRoutes(r *mux.Router) {
 
 func (h *Handler) CreateHotel(w http.ResponseWriter, r *http.Request) {
 	var request struct {
-		OwnerName    string               `json:"ownerName"`
-		OwnerSurname string               `json:"ownerSurname"`
-		CompanyTitle string               `json:"companyTitle"`
-		Contacts     []models.ContactInfo `json:"contacts"`
+		OwnerName    string        `json:"ownerName"`
+		OwnerSurname string        `json:"ownerSurname"`
+		CompanyTitle string        `json:"companyTitle"`
+		Contacts     []ContactInfo `json:"contacts"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
@@ -79,7 +78,7 @@ func (h *Handler) AddContactInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var contact models.ContactInfo
+	var contact ContactInfo
 	if err := json.NewDecoder(r.Body).Decode(&contact); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -90,7 +89,7 @@ func (h *Handler) AddContactInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(contact)
 }
 
@@ -150,8 +149,8 @@ func (h *Handler) GetHotelDetails(w http.ResponseWriter, r *http.Request) {
 	}
 
 	hotelDetails, err := h.hotelService.GetHotelDetails(hotelUUID)
-	if err != nil {
-		http.Error(w, "Error retrieving hotel details", http.StatusInternalServerError)
+	if err != nil || hotelDetails == nil {
+		http.Error(w, "Hotel not found", http.StatusNotFound)
 		return
 	}
 

@@ -1,4 +1,4 @@
-package models
+package hotel
 
 import "github.com/google/uuid"
 

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"hotel-guide/internal/mq"
-	"hotel-guide/models"
 	"log"
 
 	"github.com/google/uuid"
@@ -12,32 +11,32 @@ import (
 
 // ReportService interface defines the methods for report-related operations
 type ReportService interface {
-	CreateReport(location string, hotelCount, phoneCount int) (*models.Report, error)
-	ListReports() ([]models.Report, error)
-	GetReportByID(id uuid.UUID) (*models.Report, error)
-	RequestReportGeneration(location string) (*models.Report, error)
-	UpdateReportStatus(id uuid.UUID, status models.ReportStatus) error
+	CreateReport(location string, hotelCount, phoneCount int) (*Report, error)
+	ListReports() ([]Report, error)
+	GetReportByID(id uuid.UUID) (*Report, error)
+	RequestReportGeneration(location string) (*Report, error)
+	UpdateReportStatus(id uuid.UUID, status ReportStatus) error
 	StartReportConsumer()
 	fetchLocationStats(location string) (int, int, error)
 }
 
 // reportService struct implements the ReportService interface
 type reportService struct {
-	reportRepo ReportRepository
-	rabbitMQ   *mq.RabbitMQ
+	reportRepo   ReportRepository
+	messageQueue mq.MessageQueue
 }
 
 // NewReportService creates a new instance of reportService
-func NewService(repo ReportRepository, rabbitMQ *mq.RabbitMQ) ReportService {
+func NewService(repo ReportRepository, messageQueue mq.MessageQueue) ReportService {
 	return &reportService{
-		reportRepo: repo,
-		rabbitMQ:   rabbitMQ,
+		reportRepo:   repo,
+		messageQueue: messageQueue,
 	}
 }
 
 // CreateReport creates a new report with the provided details
-func (s *reportService) CreateReport(location string, hotelCount, phoneCount int) (*models.Report, error) {
-	report := models.NewReport(location, hotelCount, phoneCount)
+func (s *reportService) CreateReport(location string, hotelCount, phoneCount int) (*Report, error) {
+	report := NewReport(location, hotelCount, phoneCount)
 	err := s.reportRepo.Save(report)
 	if err != nil {
 		return nil, fmt.Errorf("failed to save report: %w", err)
@@ -46,20 +45,20 @@ func (s *reportService) CreateReport(location string, hotelCount, phoneCount int
 }
 
 // ListReports retrieves a list of all reports
-func (s *reportService) ListReports() ([]models.Report, error) {
+func (s *reportService) ListReports() ([]Report, error) {
 	return s.reportRepo.ListReports()
 }
 
 // GetReportByID retrieves the details of a report by its ID
-func (s *reportService) GetReportByID(id uuid.UUID) (*models.Report, error) {
+func (s *reportService) GetReportByID(id uuid.UUID) (*Report, error) {
 	return s.reportRepo.GetReportByID(id)
 }
 
 // RequestReportGeneration handles the creation of a new report and sends it to the RabbitMQ queue
-func (s *reportService) RequestReportGeneration(location string) (*models.Report, error) {
+func (s *reportService) RequestReportGeneration(location string) (*Report, error) {
 	// Create a new report with "Pending" status
-	report := models.NewReport(location, 0, 0) // Initial counts set to 0
-	report.Status = models.Pending
+	report := NewReport(location, 0, 0) // Initial counts set to 0
+	report.Status = Pending
 	err := s.reportRepo.Save(report)
 	if err != nil {
 		return nil, fmt.Errorf("failed to save report: %w", err)
@@ -80,7 +79,7 @@ func (s *reportService) RequestReportGeneration(location string) (*models.Report
 	}
 
 	// Send the JSON-formatted report request to RabbitMQ
-	err = s.rabbitMQ.Publish("reportQueue", reportJSON)
+	err = s.messageQueue.Publish("reportQueue", reportJSON)
 	if err != nil {
 		return nil, fmt.Errorf("failed to publish report generation request: %w", err)
 	}
@@ -89,13 +88,13 @@ func (s *reportService) RequestReportGeneration(location string) (*models.Report
 }
 
 // UpdateReportStatus updates the status of an existing report
-func (s *reportService) UpdateReportStatus(id uuid.UUID, status models.ReportStatus) error {
+func (s *reportService) UpdateReportStatus(id uuid.UUID, status ReportStatus) error {
 	return s.reportRepo.UpdateReportStatus(id, status)
 }
 
 // StartReportConsumer consumes messages from RabbitMQ and processes reports
 func (s *reportService) StartReportConsumer() {
-	messages, err := s.rabbitMQ.Consume("reportQueue")
+	messages, err := s.messageQueue.Consume("reportQueue")
 	if err != nil {
 		log.Fatal(fmt.Errorf("failed to start consumer: %w", err))
 	}
@@ -120,7 +119,7 @@ func (s *reportService) StartReportConsumer() {
 			}
 
 			// Update the report with the fetched stats and set status to Completed
-			err = s.reportRepo.UpdateReportStats(request.ID, hotelCount, phoneCount, models.Completed)
+			err = s.reportRepo.UpdateReportStats(request.ID, hotelCount, phoneCount, Completed)
 			if err != nil {
 				log.Printf("Failed to update report status for report ID %s: %v", request.ID, err)
 				continue

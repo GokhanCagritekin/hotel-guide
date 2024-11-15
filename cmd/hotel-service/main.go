@@ -11,11 +11,18 @@ import (
 
 func main() {
 	// Initialize the database and ensure it closes on exit
-	db.InitDB()
-	defer db.CloseDB()
+	dbInstance, err := db.InitDB()
+	if err != nil {
+		log.Fatalf("Failed to initialize database: %v", err)
+	}
+	defer db.CloseDB(dbInstance)
+
+	if err := dbInstance.AutoMigrate(&hotel.Hotel{}, &hotel.ContactInfo{}); err != nil {
+		log.Fatalf("Error running migrations: %v", err)
+	}
 
 	// Initialize hotel repository
-	hotelRepo := hotel.NewRepository()
+	hotelRepo := hotel.NewRepository(dbInstance)
 
 	// Initialize hotel service
 	hotelService := hotel.NewService(hotelRepo)
