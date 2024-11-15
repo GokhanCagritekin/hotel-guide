@@ -10,10 +10,10 @@ import (
 )
 
 type Handler struct {
-	hotelService *HotelService
+	hotelService HotelService
 }
 
-func NewHandler(service *HotelService) *Handler {
+func NewHandler(service HotelService) *Handler {
 	return &Handler{
 		hotelService: service,
 	}
@@ -89,7 +89,7 @@ func (h *Handler) AddContactInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(contact)
 }
 
@@ -149,8 +149,8 @@ func (h *Handler) GetHotelDetails(w http.ResponseWriter, r *http.Request) {
 	}
 
 	hotelDetails, err := h.hotelService.GetHotelDetails(hotelUUID)
-	if err != nil {
-		http.Error(w, "Error retrieving hotel details", http.StatusInternalServerError)
+	if err != nil || hotelDetails == nil {
+		http.Error(w, "Hotel not found", http.StatusNotFound)
 		return
 	}
 

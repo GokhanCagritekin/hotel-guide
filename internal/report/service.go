@@ -22,15 +22,15 @@ type ReportService interface {
 
 // reportService struct implements the ReportService interface
 type reportService struct {
-	reportRepo ReportRepository
-	rabbitMQ   *mq.RabbitMQ
+	reportRepo   ReportRepository
+	messageQueue mq.MessageQueue
 }
 
 // NewReportService creates a new instance of reportService
-func NewService(repo ReportRepository, rabbitMQ *mq.RabbitMQ) ReportService {
+func NewService(repo ReportRepository, messageQueue mq.MessageQueue) ReportService {
 	return &reportService{
-		reportRepo: repo,
-		rabbitMQ:   rabbitMQ,
+		reportRepo:   repo,
+		messageQueue: messageQueue,
 	}
 }
 
@@ -79,7 +79,7 @@ func (s *reportService) RequestReportGeneration(location string) (*Report, error
 	}
 
 	// Send the JSON-formatted report request to RabbitMQ
-	err = s.rabbitMQ.Publish("reportQueue", reportJSON)
+	err = s.messageQueue.Publish("reportQueue", reportJSON)
 	if err != nil {
 		return nil, fmt.Errorf("failed to publish report generation request: %w", err)
 	}
@@ -94,7 +94,7 @@ func (s *reportService) UpdateReportStatus(id uuid.UUID, status ReportStatus) er
 
 // StartReportConsumer consumes messages from RabbitMQ and processes reports
 func (s *reportService) StartReportConsumer() {
-	messages, err := s.rabbitMQ.Consume("reportQueue")
+	messages, err := s.messageQueue.Consume("reportQueue")
 	if err != nil {
 		log.Fatal(fmt.Errorf("failed to start consumer: %w", err))
 	}

@@ -1,6 +1,7 @@
 package db
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -9,9 +10,7 @@ import (
 	"gorm.io/gorm"
 )
 
-var DB *gorm.DB
-
-func InitDB() {
+func InitDB() (*gorm.DB, error) {
 	// Load .env file
 	if err := godotenv.Load(); err != nil {
 		log.Fatalf("Error loading .env file")
@@ -28,26 +27,27 @@ func InitDB() {
 	// Form the connection string
 	connectionString := "postgres://" + dbUser + ":" + dbPassword + "@" + dbHost + ":" + dbPort + "/" + dbName + "?sslmode=" + dbSSLMode
 
-	var err error
-	DB, err = gorm.Open(postgres.Open(connectionString), &gorm.Config{})
+	db, err := gorm.Open(postgres.Open(connectionString), &gorm.Config{})
 	if err != nil {
-		log.Fatalf("Error connecting to the database: %v", err)
+		return nil, fmt.Errorf("error connecting to the database: %w", err)
 	}
 
-	sqlDB, err := DB.DB()
+	sqlDB, err := db.DB()
 	if err != nil {
-		log.Fatalf("Error getting the database object: %v", err)
+		return nil, fmt.Errorf("error getting the database object: %w", err)
 	}
 
 	sqlDB.Exec("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";")
 
-	if err := applyCascadeDeleteConstraint(DB); err != nil {
-		log.Fatalf("Error applying cascade delete constraint: %v", err)
+	if err := applyCascadeDeleteConstraint(db); err != nil {
+		return nil, fmt.Errorf("error applying cascade delete constraint: %w", err)
 	}
+
+	return db, nil
 }
 
-func CloseDB() {
-	sqlDB, err := DB.DB()
+func CloseDB(dbInstance *gorm.DB) {
+	sqlDB, err := dbInstance.DB()
 	if err != nil {
 		log.Fatalf("Error getting the database object: %v", err)
 	}

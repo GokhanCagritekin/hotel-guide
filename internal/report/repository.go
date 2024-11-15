@@ -9,8 +9,6 @@ import (
 	"net/url"
 	"os"
 
-	"hotel-guide/internal/db"
-
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -24,15 +22,12 @@ type ReportRepository interface {
 	UpdateReportStats(reportID uuid.UUID, hotelCount, phoneCount int, status ReportStatus) error
 	FetchHotelAndPhoneCounts(location string) (int, int, error)
 }
-
-// reportRepository implements ReportRepository
 type reportRepository struct {
 	db *gorm.DB
 }
 
-// NewRepository returns a new reportRepository instance
-func NewRepository() ReportRepository {
-	return &reportRepository{db: db.DB}
+func NewRepository(db *gorm.DB) ReportRepository {
+	return &reportRepository{db: db}
 }
 
 // Save saves a new report

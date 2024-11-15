@@ -6,17 +6,29 @@ import (
 	"github.com/google/uuid"
 )
 
-type HotelService struct {
+type HotelService interface {
+	CreateHotel(ownerName, ownerSurname, companyTitle string, contacts []ContactInfo) (*Hotel, error)
+	DeleteHotel(id uuid.UUID) error
+	AddContactInfo(hotelID uuid.UUID, contact *ContactInfo) error
+	RemoveContactInfo(hotelID uuid.UUID, contactUUID uuid.UUID) error
+	ListHotels() ([]Hotel, error)
+	ListHotelOfficials() ([]HotelOfficial, error)
+	GetHotelDetails(hotelID uuid.UUID) (*Hotel, error)
+	FetchLocationStats(location string) (int, int, error)
+}
+
+// hotelService struct implements the HotelService interface
+type hotelService struct {
 	hotelRepo HotelRepository
 }
 
-func NewService(repo HotelRepository) *HotelService {
-	return &HotelService{
+func NewService(repo HotelRepository) HotelService {
+	return &hotelService{
 		hotelRepo: repo,
 	}
 }
 
-func (s *HotelService) CreateHotel(ownerName, ownerSurname, companyTitle string, contacts []ContactInfo) (*Hotel, error) {
+func (s *hotelService) CreateHotel(ownerName, ownerSurname, companyTitle string, contacts []ContactInfo) (*Hotel, error) {
 	hotel := NewHotel(ownerName, ownerSurname, companyTitle, contacts)
 	if err := s.hotelRepo.Save(hotel); err != nil {
 		return nil, err
@@ -24,32 +36,32 @@ func (s *HotelService) CreateHotel(ownerName, ownerSurname, companyTitle string,
 	return hotel, nil
 }
 
-func (s *HotelService) DeleteHotel(id uuid.UUID) error {
+func (s *hotelService) DeleteHotel(id uuid.UUID) error {
 	if err := s.hotelRepo.Delete(id); err != nil {
 		return fmt.Errorf("failed to delete hotel: %w", err)
 	}
 	return nil
 }
 
-func (s *HotelService) AddContactInfo(hotelID uuid.UUID, contact *ContactInfo) error {
+func (s *hotelService) AddContactInfo(hotelID uuid.UUID, contact *ContactInfo) error {
 	if err := s.hotelRepo.AddContactInfo(hotelID, contact); err != nil {
 		return fmt.Errorf("failed to add contact info: %w", err)
 	}
 	return nil
 }
 
-func (s *HotelService) RemoveContactInfo(hotelID uuid.UUID, contactUUID uuid.UUID) error {
+func (s *hotelService) RemoveContactInfo(hotelID uuid.UUID, contactUUID uuid.UUID) error {
 	if err := s.hotelRepo.RemoveContactInfo(hotelID, contactUUID); err != nil {
 		return fmt.Errorf("failed to remove contact info: %w", err)
 	}
 	return nil
 }
 
-func (s *HotelService) ListHotels() ([]Hotel, error) {
+func (s *hotelService) ListHotels() ([]Hotel, error) {
 	return s.hotelRepo.ListHotels()
 }
 
-func (s *HotelService) ListHotelOfficials() ([]HotelOfficial, error) {
+func (s *hotelService) ListHotelOfficials() ([]HotelOfficial, error) {
 	officials, err := s.hotelRepo.GetHotelOfficials()
 	if err != nil {
 		return nil, fmt.Errorf("failed to list hotel officials: %w", err)
@@ -57,7 +69,7 @@ func (s *HotelService) ListHotelOfficials() ([]HotelOfficial, error) {
 	return officials, nil
 }
 
-func (s *HotelService) GetHotelDetails(hotelID uuid.UUID) (*Hotel, error) {
+func (s *hotelService) GetHotelDetails(hotelID uuid.UUID) (*Hotel, error) {
 	hotelDetails, err := s.hotelRepo.GetHotelDetails(hotelID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get hotel details: %w", err)
@@ -65,7 +77,7 @@ func (s *HotelService) GetHotelDetails(hotelID uuid.UUID) (*Hotel, error) {
 	return hotelDetails, nil
 }
 
-func (s *HotelService) FetchLocationStats(location string) (int, int, error) {
+func (s *hotelService) FetchLocationStats(location string) (int, int, error) {
 	hotels, err := s.hotelRepo.FetchHotelsByLocation(location)
 	if err != nil {
 		return 0, 0, fmt.Errorf("failed to fetch hotels for location %s: %w", location, err)

@@ -12,15 +12,18 @@ import (
 
 func main() {
 	// Initialize the database and ensure it closes on exit
-	db.InitDB()
-	defer db.CloseDB()
+	dbInstance, err := db.InitDB()
+	if err != nil {
+		log.Fatalf("Error initializing database: %v", err)
+	}
+	defer db.CloseDB(dbInstance)
 
-	if err := db.DB.AutoMigrate(&report.Report{}); err != nil {
+	if err := dbInstance.AutoMigrate(&report.Report{}); err != nil {
 		log.Fatalf("Error running migrations: %v", err)
 	}
 
 	// Initialize report repository
-	reportRepo := report.NewRepository()
+	reportRepo := report.NewRepository(dbInstance)
 
 	// Retrieve RabbitMQ connection URL from the mq package
 	rabbitMQURL, err := mq.NewRabbitMQURL()

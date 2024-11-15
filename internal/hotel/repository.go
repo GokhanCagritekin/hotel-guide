@@ -2,7 +2,6 @@ package hotel
 
 import (
 	"fmt"
-	"hotel-guide/internal/db"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -23,8 +22,8 @@ type hotelRepository struct {
 	db *gorm.DB
 }
 
-func NewRepository() HotelRepository {
-	return &hotelRepository{db: db.DB}
+func NewRepository(db *gorm.DB) HotelRepository {
+	return &hotelRepository{db: db}
 }
 
 func (r *hotelRepository) Save(hotel *Hotel) error {
