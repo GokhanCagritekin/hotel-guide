@@ -9,8 +9,6 @@ This project is a simple hotel guide application built using Go. It consists of 
 3. [API Endpoints](#api-endpoints)
 4. [Setup and Installation](#setup-and-installation)
 5. [Testing](#testing)
-6. [Environment Variables](#environment-variables)
-7. [Unit Test Coverage](#unit-test-coverage)
 
 ---
 
