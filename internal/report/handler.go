@@ -29,6 +29,16 @@ func (h *ReportHandler) RegisterRoutes(r *mux.Router) {
 	r.HandleFunc("/reports", h.RequestReportGeneration).Methods(http.MethodPost)
 }
 
+// sendJSONResponse sends JSON response with proper Content-Type and status code
+func sendJSONResponse(w http.ResponseWriter, statusCode int, response interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Error().Err(err).Msg("Error encoding response")
+		http.Error(w, "Error encoding response", http.StatusInternalServerError)
+	}
+}
+
 // RequestReportGeneration handles the creation of a new report
 func (h *ReportHandler) RequestReportGeneration(w http.ResponseWriter, r *http.Request) {
 	var req struct {
@@ -56,11 +66,7 @@ func (h *ReportHandler) RequestReportGeneration(w http.ResponseWriter, r *http.R
 	}
 
 	// Return the created report
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	if err := json.NewEncoder(w).Encode(report); err != nil {
-		log.Error().Err(err).Msg("Error encoding response")
-	}
+	sendJSONResponse(w, http.StatusCreated, report)
 }
 
 // ListReports handles fetching all reports
@@ -73,10 +79,7 @@ func (h *ReportHandler) ListReports(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Return the list of reports
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(reports); err != nil {
-		log.Error().Err(err).Msg("Error encoding response")
-	}
+	sendJSONResponse(w, http.StatusOK, reports)
 }
 
 // GetReportByID handles fetching a specific report by ID
@@ -102,8 +105,5 @@ func (h *ReportHandler) GetReportByID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Return the report
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(report); err != nil {
-		log.Error().Err(err).Msg("Error encoding response")
-	}
+	sendJSONResponse(w, http.StatusOK, report)
 }
