@@ -106,7 +106,7 @@ func TestAddContactInfo(t *testing.T) {
 
 	hotelID := uuid.New()
 	contact := &ContactInfo{
-		InfoType:    "phone",
+		InfoType:    ContactTypePhone,
 		InfoContent: "123-456-7890",
 	}
 
@@ -196,8 +196,8 @@ func TestFetchLocationStats(t *testing.T) {
 
 	location := "New York"
 	expectedHotels := []Hotel{
-		{ID: uuid.New(), ContactInfos: []ContactInfo{{InfoType: "phone", InfoContent: "123-456"}}},
-		{ID: uuid.New(), ContactInfos: []ContactInfo{{InfoType: "phone", InfoContent: "789-101"}}},
+		{ID: uuid.New(), ContactInfos: []ContactInfo{{InfoType: ContactTypePhone, InfoContent: "123-456"}}},
+		{ID: uuid.New(), ContactInfos: []ContactInfo{{InfoType: ContactTypePhone, InfoContent: "789-101"}}},
 	}
 	hotelCount := len(expectedHotels)
 	phoneCount := 2
@@ -262,7 +262,7 @@ func TestAddContactInfo_Error(t *testing.T) {
 
 	hotelID := uuid.New()
 	contact := &ContactInfo{
-		InfoType:    "phone",
+		InfoType:    ContactTypePhone,
 		InfoContent: "123-456-7890",
 	}
 

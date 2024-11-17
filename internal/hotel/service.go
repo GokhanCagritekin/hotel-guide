@@ -29,6 +29,9 @@ func NewService(repo HotelRepository) HotelService {
 }
 
 func (s *hotelService) CreateHotel(ownerName, ownerSurname, companyTitle string, contacts []ContactInfo) (*Hotel, error) {
+	if ownerName == "" || ownerSurname == "" || companyTitle == "" {
+		return nil, fmt.Errorf("owner name, surname, and company title are required")
+	}
 	hotel := NewHotel(ownerName, ownerSurname, companyTitle, contacts)
 	if err := s.hotelRepo.Save(hotel); err != nil {
 		return nil, err
@@ -84,14 +87,18 @@ func (s *hotelService) FetchLocationStats(location string) (int, int, error) {
 	}
 
 	hotelCount := len(hotels)
-	phoneCount := 0
+	phoneCount := s.countContactsByType(hotels, ContactTypePhone)
+	return hotelCount, phoneCount, nil
+}
+
+func (s *hotelService) countContactsByType(hotels []Hotel, contactType string) int {
+	count := 0
 	for _, hotel := range hotels {
 		for _, contact := range hotel.ContactInfos {
-			if contact.InfoType == "phone" {
-				phoneCount++
+			if contact.InfoType == contactType {
+				count++
 			}
 		}
 	}
-
-	return hotelCount, phoneCount, nil
+	return count
 }

@@ -2,6 +2,12 @@ package hotel
 
 import "github.com/google/uuid"
 
+const (
+	ContactTypePhone = "phone"
+	ContactTypeEmail = "email"
+	ContactTypeFax   = "fax"
+)
+
 type ContactInfo struct {
 	ID          uuid.UUID `gorm:"type:uuid;primary_key;default:uuid_generate_v4()" json:"id"`
 	HotelID     uuid.UUID `gorm:"type:uuid;not null;constraint:OnDelete:CASCADE;" json:"hotel_id"`
